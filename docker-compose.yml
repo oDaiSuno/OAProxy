@@ -1,0 +1,13 @@
+version: '3.8'
+
+services:
+  format-proxy:
+    build: .
+    ports:
+      - "${PROXY_PORT:-8080}:8080"
+    environment:
+      - BACKEND_TYPE=${BACKEND_TYPE:-openai}
+      - BACKEND_BASE_URL=${BACKEND_BASE_URL:-https://api.openai.com}
+      - PROXY_PORT=${PROXY_PORT:-8080}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+    restart: unless-stopped
