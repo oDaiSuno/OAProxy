@@ -14,6 +14,13 @@ import asyncio
 logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO"))
 logger = logging.getLogger(__name__)
 
+
+app = FastAPI()
+
+BACKEND_TYPE = os.getenv("BACKEND_TYPE", "openai").lower()
+BACKEND_BASE_URL = os.getenv("BACKEND_BASE_URL", "http://localhost:8856")
+PROXY_PORT = int(os.getenv("PROXY_PORT", "8080"))
+
 def safe_json_loads(data: Union[bytes, str]) -> Dict[str, Any]:
     """
     安全的JSON解析函数，自动处理bytes/string类型转换和详细错误诊断
@@ -54,12 +61,6 @@ def safe_json_loads(data: Union[bytes, str]) -> Dict[str, Any]:
     except Exception as e:
         logger.error(f"JSON解析过程中发生未知错误: {e}")
         raise json.JSONDecodeError(f"JSON解析失败: {e}", str(data)[:50] if data else "", 0)
-
-app = FastAPI()
-
-BACKEND_TYPE = os.getenv("BACKEND_TYPE", "openai").lower()
-BACKEND_BASE_URL = os.getenv("BACKEND_BASE_URL", "http://localhost:8856")
-PROXY_PORT = int(os.getenv("PROXY_PORT", "8080"))
 
 class OpenAIMessage(BaseModel):
     role: str
@@ -1162,24 +1163,12 @@ async def anthropic_messages(request: Request):
 async def list_models(request: Request):
     headers = dict(request.headers)
     
-    if BACKEND_TYPE == "anthropic":
-        return JSONResponse(content={
-            "object": "list",
-            "data": [
-                {"id": "claude-3-opus-20240229", "object": "model", "created": 1709251200, "owned_by": "anthropic"},
-                {"id": "claude-3-sonnet-20240229", "object": "model", "created": 1709251200, "owned_by": "anthropic"},
-                {"id": "claude-3-haiku-20240307", "object": "model", "created": 1709856000, "owned_by": "anthropic"},
-                {"id": "claude-3.5-sonnet-20241022", "object": "model", "created": 1729555200, "owned_by": "anthropic"},
-                {"id": "claude-3.5-haiku-20241022", "object": "model", "created": 1729555200, "owned_by": "anthropic"}
-            ]
-        })
-    else:
-        response = await forward_request(
+    response = await forward_request(
             request.url.path,
             request.method,
             headers
         )
-        return JSONResponse(content=response.json())
+    return JSONResponse(content=response.json())
 
 @app.post("/v1/messages/count_tokens")
 async def count_tokens(request: Request):
